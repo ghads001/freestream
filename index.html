@@ -1,0 +1,823 @@
+  <title>FreeStream - Live TV Channels (including Brazilian)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap');
+
+    :root {
+      --primary-color: #00a8ff;
+      --secondary-color: #ff6b6b;
+      --background-color: #0f0f1e;
+      --text-color: #e0e0e0;
+      --card-background: rgba(30, 30, 50, 0.7);
+      --scrollbar-thumb: #4a4a6a;
+      --scrollbar-track: #2a2a3a;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease;
+      overflow: hidden;
+    }
+
+    .background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      animation: float 20s infinite ease-in-out;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(10px, -10px); }
+    }
+
+    header {
+      background-color: rgba(20, 20, 40, 0.8);
+      color: white;
+      padding: 1em;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      backdrop-filter: blur(5px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+      background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon::before {
+      content: '▶';
+      color: white;
+      font-size: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 1px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1400px;
+      margin: 2em auto;
+      padding: 0 2em;
+      gap: 2em;
+    }
+
+    .channel-list {
+      width: 300px;
+      height: calc(100vh - 200px);
+      background-color: var(--card-background);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      overflow-y: auto;
+      transition: box-shadow 0.3s ease;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    .channel-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .channel-list::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+    }
+
+    .channel-list::-webkit-scrollbar-thumb {
+      background-color: var(--scrollbar-thumb);
+      border-radius: 4px;
+    }
+
+    .channel-list:hover {
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    .channel-item {
+      padding: 1em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .channel-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+
+    .channel-item.active {
+      background-color: rgba(0, 168, 255, 0.2);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .channel-item[data-category="Just for Fun"] {
+      background-color: rgba(255, 192, 203, 0.2);
+      border-left: 4px solid pink;
+    }
+
+    .channel-item[data-category="Just for Fun"]:hover {
+      background-color: rgba(255, 192, 203, 0.3);
+    }
+
+    .channel-item[data-category="Just for Fun"] .channel-category {
+      color: pink;
+    }
+
+    .channel-name {
+      font-weight: bold;
+      margin-bottom: 0.5em;
+    }
+
+    .channel-category {
+      color: #aaa;
+      font-size: 0.9em;
+    }
+
+    .channel-release-date {
+      color: #aaa;
+      font-size: 0.8em;
+      margin-top: 0.2em;
+    }
+
+    .year-header {
+      background-color: var(--primary-color);
+      color: var(--background-color);
+      padding: 0.5em;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 1em;
+    }
+
+    .player-container {
+      flex-grow: 1;
+      position: relative;
+      height: calc(100vh - 200px);
+    }
+
+    #videoPlayer, .player-container iframe {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      transition: box-shadow 0.3s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    #videoPlayer:hover {
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    .video-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 150%;
+      height: 150%;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.6;
+      transition: all 0.5s ease;
+      filter: blur(50px);
+      z-index: 1;
+    }
+
+    #loading {
+      text-align: center;
+      font-size: 1.2em;
+      margin-top: 2em;
+      color: var(--primary-color);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .channel-list {
+        width: 100%;
+        height: auto;
+        max-height: 300px;
+      }
+    }
+
+    .country-selector {
+      margin-top: 1em;
+    }
+
+    #countrySelect {
+      background-color: var(--card-background);
+      color: var(--text-color);
+      border: 1px solid var(--primary-color);
+      padding: 0.5em;
+      border-radius: 5px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #countrySelect:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .error-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+      color: var(--text-color);
+    }
+
+    .error-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .error-message {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .error-code {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="background">
+    <div class="bubble" style="width: 100px; height: 100px; top: 10%; left: 10%;"></div>
+    <div class="bubble" style="width: 150px; height: 150px; top: 40%; left: 70%;"></div>
+    <div class="bubble" style="width: 80px; height: 80px; top: 70%; left: 30%;"></div>
+    <div class="bubble" style="width: 120px; height: 120px; top: 20%; left: 90%;"></div>
+  </div>
+  <header>
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <h1>FreeStream</h1>
+    </div>
+    <p class="subtitle">Live TV Channels / Canais de TV ao Vivo</p>
+    <div class="country-selector">
+      <select id="countrySelect">
+        <option value="all">All Countries / Todos os Países</option>
+        <option value="USA">USA</option>
+        <option value="France">France</option>
+        <option value="Brazil">Brazil</option>
+        <option value="Web">Just for Fun</option>
+        <option value="Trailers">Trailers</option>
+      </select>
+    </div>
+  </header>
+  <div class="container">
+    <div class="channel-list" id="channelList">
+      <div id="loading">Loading available channels...</div>
+    </div>
+    <div class="player-container">
+      <div class="video-glow"></div>
+      <video id="videoPlayer" controls></video>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const channelList = document.getElementById('channelList');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const loading = document.getElementById('loading');
+    const videoGlow = document.querySelector('.video-glow');
+    const countrySelect = document.getElementById('countrySelect');
+
+    let currentChannelIndex = -1;
+    let lastGlowColor = { r: 0, g: 0, b: 0 };
+    let glowUpdateInterval;
+
+    const channels = [
+      {
+        name: "ABC News",
+        category: "News",
+        url: "https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Red Bull TV",
+        category: "Sports",
+        url: "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Sky News",
+        category: "News",
+        url: "https://skynewsau-live.akamaized.net/hls/live/2002689/skynewsau-extra1/master.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Newsmax",
+        category: "News",
+        url: "https://nmxlive.akamaized.net/hls/live/529965/Live_1/index.m3u8",
+        country: "USA"
+      },
+      {
+        name: "CBS News",
+        category: "News",
+        url: "https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Al Jazeera English",
+        category: "News",
+        url: "https://live-hls-web-aje.getaj.net/AJE/index.m3u8",
+        country: "USA"
+      },
+      {
+        name: "DW English",
+        category: "News",
+        url: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Tastemade",
+        category: "Lifestyle",
+        url: "https://tastemadessai.akamaized.net/amagi_hls_data_tastemade-tastemade/CDN/playlist.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Fashion TV",
+        category: "Lifestyle",
+        url: "https://fash1043.cloudycdn.services/slive/_definst_/ftv_ftv_midnite_k1y_27049_midnite_secr_108_hls.smil/playlist.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Bon Appétit",
+        category: "Lifestyle",
+        url: "https://bonappetit-samsung.amagi.tv/playlist.m3u8",
+        country: "USA"
+      },
+      {
+        name: "Rakuten TV Action Movies",
+        category: "Movies",
+        url: "https://rakuten-actionmovies-1-eu.rakuten.wurl.tv/playlist.m3u8",
+        country: "USA"
+      },
+      {
+        name: "CGTN",
+        category: "News",
+        url: "https://news.cgtn.com/resource/live/english/cgtn-news.m3u8",
+        country: "China"
+      },
+      {
+        name: "Arirang TV",
+        category: "News",
+        url: "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8",
+        country: "South Korea"
+      },
+      {
+        name: "France 24",
+        category: "News",
+        url: "https://static.france24.com/live/F24_FR_HI_HLS/live_tv.m3u8",
+        country: "France"
+      },
+      {
+        name: "TV5Monde Info",
+        category: "News",
+        url: "https://ott.tv5monde.com/Content/HLS/Live/channel(info)/index.m3u8",
+        country: "France"
+      },
+      {
+        name: "BFM TV",
+        category: "News",
+        url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_TV/index.m3u8?end=END&start=LIVE",
+        country: "France"
+      },
+      {
+        name: "Euronews French",
+        category: "News",
+        url: "https://euronews-euronews-french-3-us.plex.wurl.tv/playlist.m3u8",
+        country: "France"
+      },
+      {
+        name: "France Inter",
+        category: "Radio",
+        url: "https://stream.radiofrance.fr/franceinter/franceinter.m3u8",
+        country: "France"
+      },
+      {
+        name: "ARTE",
+        category: "Culture",
+        url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/index.m3u8",
+        country: "France"
+      },
+      {
+        name: "TV Cultura",
+        category: "General",
+        url: "https://srv3.zcast.com.br/tvbelohorizonte/tvbelohorizonte/playlist.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "Rede TV!",
+        category: "General",
+        url: "https://59f1cbe63db89.streamlock.net:1443/redetvro/_definst_/redetvro/playlist.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "TV Gazeta",
+        category: "General",
+        url: "https://stream1.bb.com.br:1936/live/tvgazetarockfestival/playlist.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "TV Brasil",
+        category: "Public",
+        url: "https://tvbrasil-stream.ebc.com.br/mux_video_ts/index-1.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "TV Escola",
+        category: "Education",
+        url: "https://video-rvd-lmg.rnp.br/live/ocp(t(FmxRAkIMy-Y)r(TOqkzw)a(CME2rA)p(d(2xc)k(q8Q)m(yHflH6_u9ObdtWAD-yFglA)n(a(Lnh2XA)s(uPg)'a(NzUCmQ)s(c4k)))s(s(0mw)b(7sG9LoPWqpG3u7cpaX8wVBrxmNdxNIjwMQzx1tIVQdzhmuIkPFDBEL5WphniBBq0oZyT9NmDQS0_Bw)'s(6eY)b(2UxBpJtULDMB3cp8Gn-kFWU-FhHBhVISKJu_lzLJ9Sp1eBzKwx3n9dqtgLlxbvwyvTu7BTRckgeSt62)'s(Iu0)b(C7Vl9Yd9sj0))m(0))/index.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "TV Câmara",
+        category: "Legislative",
+        url: "https://stream3.camara.gov.br/tv1/manifest.m3u8",
+        country: "Brazil"
+      },
+      {
+        name: "TV Senado",
+        category: "Legislative",
+        url: "https://youtu.be/4Ztxb2Yt3oI",
+        country: "Brazil"
+      },
+      {
+        name: "Windows 93",
+        category: "Just for Fun",
+        url: "https://www.windows93.net",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "My Very Own Teardrop",
+        category: "Just for Fun",
+        url: "https://myveryownteardrop.xyz",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "Pointer Pointer",
+        category: "Just for Fun",
+        url: "https://pointerpointer.com",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "The Useless Web",
+        category: "Just for Fun",
+        url: "https://theuselessweb.com",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "Quenq",
+        category: "Just for Fun",
+        url: "https://quenq.com",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "RebornXP",
+        category: "Just for Fun",
+        url: "https://xp.quenq.com",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "Winamp (GitHub)",
+        category: "Just for Fun",
+        url: "https://webamp.org",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "Nick.com",
+        category: "Just for Fun",
+        url: "https://www.nick.com",
+        country: "Web",
+        type: "external"
+      },
+      {
+        name: "My Very Own Teardrop (Trailer)",
+        category: "Trailers",
+        url: "https://www.youtube.com/watch?v=_Qbpdxm3lSE",
+        country: "Web",
+        type: "trailer",
+        releaseDate: "2023-06-15",
+        year: 2024
+      },
+      {
+        name: "Welcome to BabyFirstTV",
+        category: "Trailers",
+        url: "https://www.youtube.com/watch?v=KhWoR7uBuHs",
+        country: "Web",
+        type: "trailer",
+        releaseDate: "2006-12-01",
+        year: 2006
+      }
+    ];
+
+    function loadChannels() {
+      loading.style.display = 'none';
+      channelList.innerHTML = ''; 
+
+      const selectedCountry = countrySelect.value;
+      
+      const trailerYears = {};
+      const justForFunChannels = [];
+      
+      channels.forEach((channel, index) => {
+        if (selectedCountry === 'all' || 
+            (selectedCountry === 'Web' && channel.category === 'Just for Fun') ||
+            (selectedCountry === 'Trailers' && channel.type === 'trailer') ||
+            channel.country === selectedCountry) {
+          if (channel.type === 'trailer') {
+            if (!trailerYears[channel.year]) {
+              trailerYears[channel.year] = [];
+            }
+            trailerYears[channel.year].push({ channel, index });
+          } else if (channel.category === 'Just for Fun') {
+            justForFunChannels.push({ channel, index });
+          } else {
+            appendChannelItem(channel, index);
+          }
+        }
+      });
+
+      if (selectedCountry === 'Web' || selectedCountry === 'all') {
+        const justForFunHeader = document.createElement('div');
+        justForFunHeader.className = 'year-header';
+        justForFunHeader.textContent = 'Just for Fun';
+        channelList.appendChild(justForFunHeader);
+
+        justForFunChannels.forEach(({ channel, index }) => {
+          appendChannelItem(channel, index);
+        });
+      }
+
+      if (selectedCountry === 'Trailers' || selectedCountry === 'all') {
+        Object.keys(trailerYears).sort((a, b) => b - a).forEach(year => {
+          const yearHeader = document.createElement('div');
+          yearHeader.className = 'year-header';
+          yearHeader.textContent = year;
+          channelList.appendChild(yearHeader);
+
+          trailerYears[year].forEach(({ channel, index }) => {
+            appendChannelItem(channel, index);
+          });
+        });
+      }
+    }
+
+    function appendChannelItem(channel, index) {
+      const channelItem = document.createElement('div');
+      channelItem.className = 'channel-item fade-in';
+      channelItem.setAttribute('data-category', channel.category);
+      channelItem.style.animationDelay = `${index * 0.05}s`;
+      channelItem.innerHTML = `
+        <div class="channel-name">${channel.name}</div>
+        <div class="channel-category">${channel.category}</div>
+        <div class="channel-country">${channel.country}</div>
+        ${channel.type === 'trailer' ? `<div class="channel-release-date">Release: ${channel.releaseDate}</div>` : ''}
+      `;
+      channelItem.addEventListener('click', () => {
+        selectChannel(index);
+      });
+      channelList.appendChild(channelItem);
+    }
+
+    function getYouTubeVideoId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    countrySelect.addEventListener('change', loadChannels);
+
+    function selectChannel(index) {
+      currentChannelIndex = index;
+      const selectedChannel = channels[index];
+
+      if (selectedChannel.type === "external") {
+        displayExternalWebsite(selectedChannel.url);
+        return;
+      }
+
+      if (selectedChannel.type === "trailer") {
+        const videoId = getYouTubeVideoId(selectedChannel.url);
+        if (videoId) {
+          const iframe = document.createElement('iframe');
+          iframe.src = `https://www.youtube.com/embed/${videoId}`;
+          iframe.width = '100%';
+          iframe.height = '100%';
+          iframe.allowFullscreen = true;
+          
+          const playerContainer = document.querySelector('.player-container');
+          playerContainer.innerHTML = '';
+          playerContainer.appendChild(iframe);
+
+          const videoGlow = document.querySelector('.video-glow');
+          videoGlow.style.display = 'none';
+        }
+        return;
+      }
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(selectedChannel.url);
+        hls.attachMedia(videoPlayer);
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          videoPlayer.play();
+        });
+      } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        videoPlayer.src = selectedChannel.url;
+        videoPlayer.addEventListener('loadedmetadata', function() {
+          videoPlayer.play();
+        });
+      }
+
+      const channelItems = channelList.getElementsByClassName('channel-item');
+      for (let i = 0; i < channelItems.length; i++) {
+        channelItems[i].classList.remove('active');
+      }
+      channelItems[index].classList.add('active');
+
+      channelItems[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      videoPlayer.classList.add('fade-in');
+      setTimeout(() => videoPlayer.classList.remove('fade-in'), 500);
+
+      lastGlowColor = { r: 0, g: 0, b: 0 };
+      clearInterval(glowUpdateInterval);
+      glowUpdateInterval = setInterval(updateVideoGlow, 100);
+    }
+
+    function displayExternalWebsite(url) {
+      const iframe = document.createElement('iframe');
+      iframe.src = url;
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = 'none';
+
+      const playerContainer = document.querySelector('.player-container');
+      playerContainer.innerHTML = '';
+      playerContainer.appendChild(iframe);
+
+      const videoGlow = document.querySelector('.video-glow');
+      videoGlow.style.display = 'none';
+
+      // Add error handling
+      iframe.onerror = function() {
+        displayErrorMessage(playerContainer);
+      };
+
+      iframe.onload = function() {
+        if (iframe.contentDocument.body.innerHTML === '') {
+          displayErrorMessage(playerContainer);
+        }
+      };
+    }
+
+    function displayErrorMessage(container) {
+      container.innerHTML = `
+        <div class="error-container">
+          <div class="error-title">Whopsies!</div>
+          <div class="error-message">The page can't load. Go to another page or check the error support page.</div>
+          <div class="error-code">Error code: never gonna give you up</div>
+        </div>
+      `;
+    }
+
+    function updateVideoGlow() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = videoPlayer.videoWidth;
+      canvas.height = videoPlayer.videoHeight;
+      
+      ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+      
+      const samplePoints = [
+        {x: 0, y: 0},
+        {x: canvas.width - 1, y: 0},
+        {x: 0, y: canvas.height - 1},
+        {x: canvas.width - 1, y: canvas.height - 1},
+        {x: Math.floor(canvas.width / 2), y: Math.floor(canvas.height / 2)}
+      ];
+      
+      let r = 0, g = 0, b = 0;
+      samplePoints.forEach(point => {
+        const pixel = ctx.getImageData(point.x, point.y, 1, 1).data;
+        r += pixel[0];
+        g += pixel[1];
+        b += pixel[2];
+      });
+      
+      r = Math.floor(r / samplePoints.length);
+      g = Math.floor(g / samplePoints.length);
+      b = Math.floor(b / samplePoints.length);
+      
+      const transitionSpeed = 0.1; 
+      lastGlowColor.r += (r - lastGlowColor.r) * transitionSpeed;
+      lastGlowColor.g += (g - lastGlowColor.g) * transitionSpeed;
+      lastGlowColor.b += (b - lastGlowColor.b) * transitionSpeed;
+      
+      const glowColor = `rgb(${Math.round(lastGlowColor.r)},${Math.round(lastGlowColor.g)},${Math.round(lastGlowColor.b)})`;
+      videoGlow.style.background = `radial-gradient(circle, ${glowColor} 0%, rgba(${Math.round(lastGlowColor.r)},${Math.round(lastGlowColor.g)},${Math.round(lastGlowColor.b)},0.2) 70%, rgba(${Math.round(lastGlowColor.r)},${Math.round(lastGlowColor.g)},${Math.round(lastGlowColor.b)},0) 100%)`;
+    }
+
+    loadChannels();
+
+    channelList.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      channelList.scrollBy({
+        top: e.deltaY,
+        behavior: 'smooth'
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (currentChannelIndex > 0) {
+          selectChannel(currentChannelIndex - 1);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (currentChannelIndex < channels.length - 1) {
+          selectChannel(currentChannelIndex + 1);
+        }
+      }
+    });
+
+    function createBubbles() {
+      const background = document.querySelector('.background');
+      for (let i = 0; i < 10; i++) {
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+        bubble.style.width = `${Math.random() * 100 + 50}px`;
+        bubble.style.height = bubble.style.width;
+        bubble.style.left = `${Math.random() * 100}%`;
+        bubble.style.top = `${Math.random() * 100}%`;
+        bubble.style.animationDuration = `${Math.random() * 10 + 10}s`;
+        bubble.style.animationDelay = `${Math.random() * 5}s`;
+        background.appendChild(bubble);
+      }
+    }
+
+    createBubbles();
+  </script>
+</body></html>
